@@ -70,7 +70,8 @@ def main():
         subprocess.run(["git", "config", "--global", "user.name", "github-actions"], check=True)
         subprocess.run(["git", "config", "--global", "user.email", "github-actions@github.com"], check=True)
         
-        # Sicherstellen, dass wir auf dem aktuellen Stand sind
+        # Hier erzwingen wir die Verbindung zum main-Branch
+        subprocess.run(["git", "checkout", "-B", "main"], check=True)
         subprocess.run(["git", "pull", "origin", "main", "--rebase"], check=True)
         
         subprocess.run(["git", "add", "epg_merged.xml.gz"], check=True)
@@ -81,7 +82,7 @@ def main():
             
             # Authentifizierung über den GITHUB_TOKEN
             remote_url = f"https://x-access-token:{os.environ['GITHUB_TOKEN']}@github.com/{os.environ['GITHUB_REPOSITORY']}.git"
-            subprocess.run(["git", "push", remote_url, "HEAD:main"], check=True)
+            subprocess.run(["git", "push", remote_url, "main"], check=True)
             log("FERTIG: Datei erfolgreich gepusht!")
         else:
             log("Keine Änderungen an der Datei – kein Push nötig.")
