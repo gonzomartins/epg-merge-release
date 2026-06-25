@@ -70,7 +70,7 @@ def main():
         subprocess.run(["git", "config", "--global", "user.name", "github-actions"], check=True)
         subprocess.run(["git", "config", "--global", "user.email", "github-actions@github.com"], check=True)
         
-        # Hier erzwingen wir die Verbindung zum main-Branch
+        # Sicherstellen, dass wir auf dem richtigen Branch sind und aktuellen Stand haben
         subprocess.run(["git", "checkout", "-B", "main"], check=True)
         subprocess.run(["git", "pull", "origin", "main", "--rebase"], check=True)
         
