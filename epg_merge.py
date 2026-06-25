@@ -65,12 +65,12 @@ def main():
         merge_epg(xml1, xml2, merged_xml)
         komprimiere_gz(merged_xml, merged_gz)
         
+        # Git Konfiguration
+        subprocess.run(["git", "config", "--global", "user.name", "github-actions[bot]"], check=True)
+        subprocess.run(["git", "config", "--global", "user.email", "github-actions[bot]@users.noreply.github.com"], check=True)
+        
         # Git Upload Prozess
         log("Lade Datei ins Repository hoch...")
-        subprocess.run(["git", "config", "--global", "user.name", "github-actions"], check=True)
-        subprocess.run(["git", "config", "--global", "user.email", "github-actions@github.com"], check=True)
-        
-        # Sicherstellen, dass wir auf dem richtigen Branch sind und aktuellen Stand haben
         subprocess.run(["git", "checkout", "-B", "main"], check=True)
         subprocess.run(["git", "pull", "origin", "main", "--rebase"], check=True)
         
@@ -78,11 +78,11 @@ def main():
         
         status = subprocess.run(["git", "status", "--porcelain"], capture_output=True, text=True)
         if "epg_merged.xml.gz" in status.stdout:
-            subprocess.run(["git", "commit", "-m", "Automatisches Update der EPG Datei"], check=True)
+            subprocess.run(["git", "commit", "-m", "EPG Auto-Update"], check=True)
             
-            # Authentifizierung über den GITHUB_TOKEN
+            # Authentifizierung über den GITHUB_TOKEN für den Push
             remote_url = f"https://x-access-token:{os.environ['GITHUB_TOKEN']}@github.com/{os.environ['GITHUB_REPOSITORY']}.git"
-            subprocess.run(["git", "push", remote_url, "main"], check=True)
+            subprocess.run(["git", "push", remote_url, "main:main"], check=True)
             log("FERTIG: Datei erfolgreich gepusht!")
         else:
             log("Keine Änderungen an der Datei – kein Push nötig.")
