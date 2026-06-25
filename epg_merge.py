@@ -65,24 +65,29 @@ def main():
         merge_epg(xml1, xml2, merged_xml)
         komprimiere_gz(merged_xml, merged_gz)
         
-        # Git Upload
+        # Git Upload Prozess
         log("Lade Datei ins Repository hoch...")
         subprocess.run(["git", "config", "--global", "user.name", "github-actions"], check=True)
         subprocess.run(["git", "config", "--global", "user.email", "github-actions@github.com"], check=True)
+        
+        # Sicherstellen, dass wir auf dem aktuellen Stand sind
+        subprocess.run(["git", "pull", "origin", "main", "--rebase"], check=True)
+        
         subprocess.run(["git", "add", "epg_merged.xml.gz"], check=True)
         
         status = subprocess.run(["git", "status", "--porcelain"], capture_output=True, text=True)
         if "epg_merged.xml.gz" in status.stdout:
             subprocess.run(["git", "commit", "-m", "Automatisches Update der EPG Datei"], check=True)
-            # Authentifizierung über den GITHUB_TOKEN erzwingen
+            
+            # Authentifizierung über den GITHUB_TOKEN
             remote_url = f"https://x-access-token:{os.environ['GITHUB_TOKEN']}@github.com/{os.environ['GITHUB_REPOSITORY']}.git"
             subprocess.run(["git", "push", remote_url, "HEAD:main"], check=True)
-            log("FERTIG: Datei gepusht!")
+            log("FERTIG: Datei erfolgreich gepusht!")
         else:
             log("Keine Änderungen an der Datei – kein Push nötig.")
             
     except Exception as e:
-        log(f"Fehler: {e}")
+        log(f"Fehler bei der Ausführung: {e}")
         raise e
 
 if __name__ == "__main__":
