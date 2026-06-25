@@ -1,12 +1,9 @@
-name: EPG Merge & GitHub Release Upload
+name: EPG Daily Merge & Upload
 
 on:
   schedule:
-    - cron: '0 */6 * * *'   # 4x täglich: 00:00, 06:00, 12:00, 18:00 UTC
+    - cron: '0 4 * * *'
   workflow_dispatch:
-
-permissions:
-  contents: write
 
 jobs:
   epg-merge-upload:
@@ -14,30 +11,18 @@ jobs:
 
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v3
 
       - name: Python einrichten
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v4
         with:
           python-version: '3.11'
 
       - name: Libraries installieren
-        run: pip install requests lxml
+        run: pip install requests lxml dropbox tqdm
 
-      - name: EPG Download & Merge
+      - name: EPG Download, Merge & Upload
         env:
           EPG_URL_1: ${{ secrets.EPG_URL_1 }}
           EPG_URL_2: ${{ secrets.EPG_URL_2 }}
         run: python epg_merge.py
-
-      - name: Release sicherstellen
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          gh release view epg-latest || gh release create epg-latest --title "EPG Latest" --notes "Automatisch aktualisiertes EPG"
-
-      - name: Datei zum Release hochladen (überschreibt alte Version)
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          gh release upload epg-latest epg_merged.xml.gz --clobber
