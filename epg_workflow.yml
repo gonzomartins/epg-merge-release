@@ -70,11 +70,13 @@ def main():
         subprocess.run(["git", "config", "--global", "user.name", "github-actions"], check=True)
         subprocess.run(["git", "config", "--global", "user.email", "github-actions@github.com"], check=True)
         subprocess.run(["git", "add", "epg_merged.xml.gz"], check=True)
-        # Wenn keine Änderungen vorhanden sind, soll der Commit nicht fehlschlagen
+        
         status = subprocess.run(["git", "status", "--porcelain"], capture_output=True, text=True)
         if "epg_merged.xml.gz" in status.stdout:
             subprocess.run(["git", "commit", "-m", "Automatisches Update der EPG Datei"], check=True)
-            subprocess.run(["git", "push"], check=True)
+            # Authentifizierung über den GITHUB_TOKEN erzwingen
+            remote_url = f"https://x-access-token:{os.environ['GITHUB_TOKEN']}@github.com/{os.environ['GITHUB_REPOSITORY']}.git"
+            subprocess.run(["git", "push", remote_url, "HEAD:main"], check=True)
             log("FERTIG: Datei gepusht!")
         else:
             log("Keine Änderungen an der Datei – kein Push nötig.")
