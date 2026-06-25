@@ -69,20 +69,18 @@ def main():
         subprocess.run(["git", "config", "--global", "user.name", "github-actions[bot]"], check=True)
         subprocess.run(["git", "config", "--global", "user.email", "github-actions[bot]@users.noreply.github.com"], check=True)
         
-        # Git Upload Prozess
-        log("Lade Datei ins Repository hoch...")
-        subprocess.run(["git", "checkout", "-B", "main"], check=True)
-        subprocess.run(["git", "pull", "origin", "main", "--rebase"], check=True)
-        
+        # Datein hinzufügen
         subprocess.run(["git", "add", "epg_merged.xml.gz"], check=True)
         
         status = subprocess.run(["git", "status", "--porcelain"], capture_output=True, text=True)
         if "epg_merged.xml.gz" in status.stdout:
             subprocess.run(["git", "commit", "-m", "EPG Auto-Update"], check=True)
             
-            # Authentifizierung über den GITHUB_TOKEN für den Push
+            # Authentifizierung über den GITHUB_TOKEN
             remote_url = f"https://x-access-token:{os.environ['GITHUB_TOKEN']}@github.com/{os.environ['GITHUB_REPOSITORY']}.git"
-            subprocess.run(["git", "push", remote_url, "main:main"], check=True)
+            
+            # Hier der entscheidende Fix: Wir pushen mit Force, um Konflikte zu ignorieren
+            subprocess.run(["git", "push", "--force", remote_url, "HEAD:main"], check=True)
             log("FERTIG: Datei erfolgreich gepusht!")
         else:
             log("Keine Änderungen an der Datei – kein Push nötig.")
