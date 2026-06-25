@@ -1,9 +1,12 @@
 name: EPG Daily Merge & Upload
 
 on:
+  push:
+    branches:
+      - main
   schedule:
     - cron: '0 4 * * *'
-  workflow_dispatch:  # <--- DIESE ZEILE ist der Grund für den Button
+  workflow_dispatch:
 
 jobs:
   epg-merge-upload:
