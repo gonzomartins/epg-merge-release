@@ -1,28 +1,89 @@
-name: EPG Daily Merge & Upload
+#!/usr/bin/env python3
+import requests
+import gzip
+import os
+import shutil
+import subprocess
+from datetime import datetime
+from lxml import etree
 
-on:
-  schedule:
-    - cron: '0 4 * * *'
-  workflow_dispatch:
+EPG_URL_1 = os.environ["EPG_URL_1"]
+EPG_URL_2 = os.environ["EPG_URL_2"]
 
-jobs:
-  epg-merge-upload:
-    runs-on: ubuntu-latest
+HEADERS = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
 
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v3
 
-      - name: Python einrichten
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'
+def log(msg):
+    print(f"[{datetime.now().strftime('%H:%M:%S')}] {msg}")
 
-      - name: Libraries installieren
-        run: pip install requests lxml dropbox tqdm
 
-      - name: EPG Download, Merge & Upload
-        env:
-          EPG_URL_1: ${{ secrets.EPG_URL_1 }}
-          EPG_URL_2: ${{ secrets.EPG_URL_2 }}
-        run: python epg_merge.py
+def download_gz(url, ziel, name):
+    log(f"Lade {name}...")
+    r = requests.get(url, headers=HEADERS, stream=True, timeout=60, allow_redirects=True)
+    r.raise_for_status()
+    with open(ziel, 'wb') as f:
+        for chunk in r.iter_content(chunk_size=8192):
+            f.write(chunk)
+    log(f"{name} OK ({os.path.getsize(ziel)/1024:.1f} KB)")
+
+
+def entpacke_gz(gz_pfad):
+    xml_pfad = gz_pfad.replace('.gz', '')
+    with gzip.open(gz_pfad, 'rb') as f_in, open(xml_pfad, 'wb') as f_out:
+        shutil.copyfileobj(f_in, f_out)
+    return xml_pfad
+
+
+def merge_epg(xml1, xml2, ausgabe):
+    log("Merge EPG...")
+    root1 = etree.parse(xml1).getroot()
+    root2 = etree.parse(xml2).getroot()
+    for el in root2:
+        root1.append(el)
+    log(f"Kanaele: {len(root1.findall('channel'))} | Programme: {len(root1.findall('programme'))}")
+    etree.ElementTree(root1).write(ausgabe, encoding='utf-8', xml_declaration=True)
+    log("Merge OK!")
+
+
+def komprimiere_gz(xml_pfad, gz_pfad):
+    log("Komprimiere...")
+    with open(xml_pfad, 'rb') as f_in, gzip.open(gz_pfad, 'wb') as f_out:
+        shutil.copyfileobj(f_in, f_out)
+    log(f"Komprimiert ({os.path.getsize(gz_pfad)/1024:.1f} KB)")
+
+
+def main():
+    print("=" * 55)
+    log("EPG Job gestartet")
+    gz1 = "/tmp/epg1.xml.gz"
+    gz2 = "/tmp/epg2.xml.gz"
+    xml1 = "/tmp/epg1.xml"
+    xml2 = "/tmp/epg2.xml"
+    merged_xml = "/tmp/epg_merged.xml"
+    merged_gz = "epg_merged.xml.gz"
+    
+    try:
+        download_gz(EPG_URL_1, gz1, "EPG 1")
+        download_gz(EPG_URL_2, gz2, "EPG 2")
+        log("Entpacke...")
+        entpacke_gz(gz1)
+        entpacke_gz(gz2)
+        merge_epg(xml1, xml2, merged_xml)
+        komprimiere_gz(merged_xml, merged_gz)
+        
+        # Git Upload
+        log("Lade Datei ins Repository hoch...")
+        subprocess.run(["git", "config", "--global", "user.name", "github-actions"], check=True)
+        subprocess.run(["git", "config", "--global", "user.email", "github-actions@github.com"], check=True)
+        subprocess.run(["git", "add", "epg_merged.xml.gz"], check=True)
+        subprocess.run(["git", "commit", "-m", "Automatisches Update der EPG Datei"], check=True)
+        subprocess.run(["git", "push"], check=True)
+        
+        log("FERTIG!")
+    except Exception as e:
+        log(f"Fehler: {e}")
+        raise e
+
+
+if __name__ == "__main__":
+    main()
