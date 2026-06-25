@@ -1,0 +1,37 @@
+name: EPG Daily Merge & Upload
+
+on:
+  push:
+    branches:
+      - main
+  schedule:
+    - cron: '0 4 * * *'
+  workflow_dispatch:
+
+jobs:
+  epg-merge-upload:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Python einrichten
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Libraries installieren
+        run: pip install requests lxml
+
+      - name: EPG Download, Merge & Upload
+        env:
+          EPG_URL_1: ${{ secrets.EPG_URL_1 }}
+          EPG_URL_2: ${{ secrets.EPG_URL_2 }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: python epg_merge.py
