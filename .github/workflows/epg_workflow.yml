@@ -22,13 +22,10 @@ jobs:
           persist-credentials: false
           fetch-depth: 0
 
-      - name: Python einrichten
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
-      - name: Libraries installieren
-        run: pip install requests lxml
+      - name: Python & Bibliotheken einrichten
+        run: |
+          python3 -m pip install --upgrade pip
+          pip install requests lxml
 
       - name: EPG Download, Merge & Upload
         env:
@@ -36,4 +33,4 @@ jobs:
           EPG_URL_2: ${{ secrets.EPG_URL_2 }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_REPOSITORY: ${{ github.repository }}
-        run: python epg_merge.py
+        run: python3 epg_merge.py
