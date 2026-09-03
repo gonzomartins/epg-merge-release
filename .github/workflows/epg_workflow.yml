@@ -15,14 +15,16 @@ jobs:
       contents: write
     
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          persist-credentials: false
-          fetch-depth: 0
+      - name: Repository via Git laden
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git init
+          git remote add origin https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}.git
+          git fetch origin main --depth=1
+          git checkout main
 
-      - name: Python & Bibliotheken einrichten
+      - name: Bibliotheken installieren
         run: |
           python3 -m pip install --upgrade pip
           pip install requests lxml
