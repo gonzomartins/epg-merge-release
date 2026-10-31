@@ -32,10 +32,15 @@ def entpacke_gz(gz_pfad):
 
 def merge_epg(xml1, xml2, ausgabe):
     log("Merge EPG...")
-    root1 = etree.parse(xml1).getroot()
-    root2 = etree.parse(xml2).getroot()
+    # Toleranten Parser erstellen, der unvollstaendiges/beschädigtes XML automatisch repariert
+    parser = etree.XMLParser(recover=True, encoding='utf-8')
+    
+    root1 = etree.parse(xml1, parser).getroot()
+    root2 = etree.parse(xml2, parser).getroot()
+    
     for el in root2:
         root1.append(el)
+        
     log(f"Kanaele: {len(root1.findall('channel'))} | Programme: {len(root1.findall('programme'))}")
     etree.ElementTree(root1).write(ausgabe, encoding='utf-8', xml_declaration=True)
     log("Merge OK!")
@@ -69,7 +74,7 @@ def main():
         subprocess.run(["git", "config", "--global", "user.name", "github-actions[bot]"], check=True)
         subprocess.run(["git", "config", "--global", "user.email", "github-actions[bot]@users.noreply.github.com"], check=True)
         
-        # Datein hinzufügen
+        # Dateien hinzufügen
         subprocess.run(["git", "add", "epg_merged.xml.gz"], check=True)
         
         status = subprocess.run(["git", "status", "--porcelain"], capture_output=True, text=True)
@@ -79,7 +84,7 @@ def main():
             # Authentifizierung über den GITHUB_TOKEN
             remote_url = f"https://x-access-token:{os.environ['GITHUB_TOKEN']}@github.com/{os.environ['GITHUB_REPOSITORY']}.git"
             
-            # Hier der entscheidende Fix: Wir pushen mit Force, um Konflikte zu ignorieren
+            # Push mit Force, um Konflikte zu vermeiden
             subprocess.run(["git", "push", "--force", remote_url, "HEAD:main"], check=True)
             log("FERTIG: Datei erfolgreich gepusht!")
         else:
